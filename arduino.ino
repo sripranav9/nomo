@@ -1,3 +1,21 @@
+/*********************************************************************
+                      -- NOMO v.1 --            
+              Interactive Media Capstone 2025  
+
+Authors          : Liza Datsenko and Sri Pranav Srivatsavai
+Capstone Advisor : Prof. Nimrah Syed
+Last updated     : 17 April 2025
+Description      : Nomo is an interactive desk companion robot built to 
+                   encourage healthier work habits through computer 
+                   vision, gesture recognition, and playful nudges.
+
+Special thanks to Prof. Michael Shiloh and Prof. Aya Riad
+for their valuable contributions.
+
+* NOTES
+- The Work mode is referred to as the Study mode in some cases.
+**********************************************************************/
+
 #include <Wire.h>
 #include <Adafruit_MPR121.h>
 #include <SPI.h>
@@ -7,11 +25,18 @@
 #include <Adafruit_VS1053.h>
 #include <SD.h>
 
+//////////////////////////////////////////////////////////
+// PIN SELECTION - Servo, RFID, Vibration Motor
+//////////////////////////////////////////////////////////
+
 #define MPR121_INT 2   // Interrupt pin for MPR121
 #define RST_PIN 5      // Reset pin for RFID
 #define SS_PIN 53      // Slave select pin for RFID
 #define MOTOR_PIN 47    // Pin for vibration motor
 #define MOTOR_PIN2 48    // Pin for vibration motor
+
+#define BOTTOM_SERVO_PIN 45 // Pin for Servo 1
+#define UP_SERVO_PIN 46 // Pin for Servo 2
 
 //////////////////////////////////////////////////////////
 // MUSIC MAKER SHIELD
@@ -89,8 +114,6 @@ MFRC522 rfid(SS_PIN, RST_PIN); // RFID reader
 
 Servo bottomServo;
 Servo upServo;
-#define BOTTOM_SERVO_PIN 45
-#define UP_SERVO_PIN 46
 // Global variable to store the UID of the last detected card
 byte lastCardUID[4] = {0x00, 0x00, 0x00, 0x00};
 
@@ -101,17 +124,19 @@ const byte trackUIDs[3][4] = {
     {0x03, 0x3B, 0x20, 0xDA}   // BLUE
 };
 
-// Interrupt Related
+//////////////////////////////////////////////////////////
+// Interrupt
+//////////////////////////////////////////////////////////
 volatile bool touchFlag = false;
 
 void mpr121Interrupt() {
   touchFlag = true;
 }
 
+
 void setup() {
     // Serial to communicate with the Pi
     Serial.begin(115200);
-    // while (!Serial);
 
     // Initialize Capacitive Touch Sensor
     if (!capTouch.begin(0x5A)) {
@@ -130,7 +155,6 @@ void setup() {
     digitalWrite(MOTOR_PIN2, LOW);
 
     // Initialize Music Player
-    // Serial1.begin(9600);
     if (! musicPlayer.begin()) {
       Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
       while (1);
@@ -173,44 +197,46 @@ void setup() {
 }
 
 void loop() {
-    handleRFID();
-    if (touchFlag) {
-      touchFlag = false;
-      handleTouchSensor();  // Called in main thread, safe!
-    }
-    // handleTouchSensor();
+  handleRFID();
+  if (touchFlag) {
+    touchFlag = false;
+    handleTouchSensor();  // Called in main thread, for intterupt work as expected!
+  }
 
-    updateSmile();
-    if(!smileActive){
-      updateLEDs();     // Handle loading animation
-      updateBlinking();
-      updateFadeEffect(); // Run fading effect
-    }
-    String command = "";
+  updateSmile();
+  if(!smileActive){
+    updateLEDs();     // Handle loading effect
+    updateBlinking(); // Run blinking effect
+    updateFadeEffect(); // Run fading effect
+  }
+  
+  // Read and interpret incoming data from Pi
+  String command = "";
   if (Serial.available() > 0) {
     command = Serial.readStringUntil('\n');  // Read full command until newline
     command.trim();  // Remove extra whitespace or newline characters
   }
 
+  // Evaluate commands and perform:
   if (command == "SHY"){
-    // servo move down 
     lookDown();
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("005.mp3");
   
-  } else if (command == "NEUTRAL"){
+  } 
+  else if (command == "NEUTRAL"){
     // Neutral position of servos
-    // bottomServo.write(70);      // Move servo to middle
-    // upServo.write(90);
     lookNeutral();
-  } else if (command == "EXTEND_STUDY"){
-    // turn solid blue colour, knod
+  } 
+  else if (command == "EXTEND_STUDY"){
+    // Turn solid blue colour, servo knod
     knod();
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("009.mp3");
     turnOnAllLEDs(CRGB::Blue);
-  } else if (command == "EXTEND_BREAK"){
-    // solid whatever break colour, knod
+  } 
+  else if (command == "EXTEND_BREAK"){
+    // Turn solid whatever break colour, servo knod
     knod();
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("009.mp3");
@@ -219,58 +245,65 @@ void loop() {
     if (BREAK_LOCATION == "YELLOW"){
       // solid yellow
       turnOnAllLEDs(CRGB::Yellow);
-    } else if (BREAK_LOCATION == "PURPLE"){
+    } 
+    else if (BREAK_LOCATION == "PURPLE"){
       // solid purple
       turnOnAllLEDs(CRGB::Purple);
     }
-    
-  } else if (command == "MOVE_TO_DESK"){
-    // fast blue blinking
+  } 
+  else if (command == "MOVE_TO_DESK"){
+    // LED fast blinking blue
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("011.mp3");
     startBlinkFast(CRGB::Blue);
-  } else if (command == "BREAK_YELLOW"){
-    // fast blinking yellow 
+  } 
+  else if (command == "BREAK_YELLOW"){
+    // LED fast blinking yellow 
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("011.mp3");
     startBlinkFast(CRGB::Yellow);
     BREAK_LOCATION = "YELLOW";
-  } else if (command == "BREAK_PURPLE"){
-    // fast blinking purple
+  } 
+  else if (command == "BREAK_PURPLE"){
+    // LED fast blinking purple
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("011.mp3");
     startBlinkFast(CRGB::Purple);
     BREAK_LOCATION = "PURPLE";
-  } else if (command == "CHECK_LOCATION"){
-    // check and send back my location - BLUE< YELLOW<PURPLE
+  } 
+  else if (command == "CHECK_LOCATION"){
     Serial.println(CURRENT_LOCATION);
-  } else if (command == "SECOND_BREAK_NUDGE"){
-    // play the sound (make sure the blinking continues)
-    // (NOTE if the blinking is not continuous: set a flag to track if the blinking is on and keep blinking)
+  } 
+  else if (command == "SECOND_BREAK_NUDGE"){
+    // Play a sound
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("001.mp3");
-  } else if (command == "BACK_TO_STUDY"){
-    // fast blinking blue
+  } 
+  else if (command == "BACK_TO_STUDY"){
+    // LED fast blinking blue and sound
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("011.mp3");
     BACK_TO_STUDY = true;
     EXTEND_BREAK = false;
     startBlinkFast(CRGB::Blue);
-  } else if (command == "STUDY_RESTART"){
+  } 
+  else if (command == "STUDY_RESTART"){
+    // LED solid blue and sound
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("013.mp3");
     stopAllEffects();
     turnOnAllLEDs(CRGB::Blue);
-    // fast blinking blue
     BACK_TO_STUDY = false;
     BREAK_LOCATION = "";
-  }else if (command == "SECOND_STUDY_NUDGE"){
-    // play sound (continue fast blinking blue)
+  }
+  else if (command == "SECOND_STUDY_NUDGE"){
+    // Play a sound
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("001.mp3");
-  } else if (command == "STANDBY"){
-    // study mode - false; slow blinking of the respective location, knod
-    // if it is not at any location - slow blinking white
+  } 
+  else if (command == "STANDBY"){
+    // Study mode - OFF; slow blinking of the respective location, knod
+    // If it is not at any location - slow blinking white
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("019.mp3");
     stopAllEffects();
@@ -279,32 +312,31 @@ void loop() {
     BREAK_LOCATION = "";
     BACK_TO_STUDY = false;
     startFadeSlow(CRGB::White);
-  } else if (command == "LOOK_LEFT"){
-    // move servo left
-    // bottomServo.write(95);      // Move servo to position 65
-    // moveBottomServo(95);
+  } 
+  else if (command == "LOOK_LEFT"){
     lookLeft();
-  } else if (command == "LOOK_RIGHT"){
-    // move servo right
-    // bottomServo.write(55);      // Move servo to position 35
-    // moveBottomServo(55);
+  } 
+  else if (command == "LOOK_RIGHT"){
     lookRight();
-  } else if (command == "DETECTED"){
-    // play sound 003
+  }
+  else if (command == "DETECTED"){
+    // Play sound, Wave for a Hi
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("017.mp3");
     turnOffAllLEDs();
     faceWave();
     showSmile(CRGB::White);
-  } else if (command == "WAVE"){
-    // wave
+  } 
+  else if (command == "WAVE"){
+    // Play sound, Wave for a Hi
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("003.mp3");
     turnOffAllLEDs();
     faceWave();
     showSmile(CRGB::White);
-  } else if (command == "STUDY"){
-    // solid blue (some small animation before starting the study mode and small sound?); set STUDY_MODE to true, knod
+  } 
+  else if (command == "STUDY"){
+    // Solid blue, Servo knod, STUDY MODE ON
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("013.mp3");
     turnOnAllLEDs(CRGB::Blue);
@@ -319,25 +351,28 @@ void loop() {
 //////////////////////////////////////////////////////////
 
 void handleTouchSensor() {
-    if (digitalRead(MPR121_INT) == LOW) {  
-        uint16_t touched = capTouch.touched();
+  if (digitalRead(MPR121_INT) == LOW) {  
+    uint16_t touched = capTouch.touched();
 
-        if (touched) {
-            //Serial.print("Touched electrodes: ");
-            for (uint8_t i = 0; i < 12; i++) {
-                if (touched & (1 << i)) {
-                    //Serial.print(i);
-                    //Serial.print(" ");
-                }
-            }
-            //Serial.println();
-            digitalWrite(MOTOR_PIN, HIGH);
-            digitalWrite(MOTOR_PIN2, HIGH);
-        } else {
-            digitalWrite(MOTOR_PIN, LOW);
-            digitalWrite(MOTOR_PIN2, LOW);
-        }
+    if (touched) {
+      //Serial.print("Touched electrodes: ");
+      for (uint8_t i = 0; i < 12; i++) {
+          if (touched & (1 << i)) {
+              //Serial.print(i);
+              //Serial.print(" ");
+          }
+      }
+
+      // Turn on vibration motors when touched
+      digitalWrite(MOTOR_PIN, HIGH);
+      digitalWrite(MOTOR_PIN2, HIGH);
+    } 
+    else {
+      // Turn off vibration motors when not touched
+      digitalWrite(MOTOR_PIN, LOW);
+      digitalWrite(MOTOR_PIN2, LOW);
     }
+  }
 }
 
 // void handleTouchSensor() {
@@ -362,81 +397,83 @@ void handleTouchSensor() {
 //////////////////////////////////////////////////////////
 
 void handleRFID() {
-    if (!rfid.PICC_IsNewCardPresent()) return;
-    if (!rfid.PICC_ReadCardSerial()) return;
+  if (!rfid.PICC_IsNewCardPresent()) return;
+  if (!rfid.PICC_ReadCardSerial()) return;
 
   // Prevent reading invalid UID (all zero)
-      bool isValidUID = false;
-      for (int i = 0; i < rfid.uid.size; i++) {
-          if (rfid.uid.uidByte[i] != 0x00) {
-              isValidUID = true;
-              break;
-          }
-      }
-      if (!isValidUID) return;  // Skip processing if UID is invalid
-
-    // detachInterrupt(digitalPinToInterrupt(MPR121_INT));
-    FastLED.show();
-
-
-    if (compareUID(rfid.uid.uidByte, rfid.uid.size, lastCardUID, 4)) {
-        return; // Same card detected, ignore
+  bool isValidUID = false;
+  for (int i = 0; i < rfid.uid.size; i++) {
+    if (rfid.uid.uidByte[i] != 0x00) {
+        isValidUID = true;
+        break;
     }
+  }
+  if (!isValidUID) return;  // Skip processing if UID is invalid
 
-    // Stop all running effects (immediately clears previous fading)
-    stopAllEffects();
+  // detachInterrupt(digitalPinToInterrupt(MPR121_INT));
+  FastLED.show(); // New location effect
 
-    if (compareUID(rfid.uid.uidByte, rfid.uid.size, trackUIDs[0], 4)) {
-        musicPlayer.stopPlaying();
-        musicPlayer.startPlayingFile("007.mp3");
-        CURRENT_LOCATION = "YELLOW";
-        Serial.println("YELLOW");
 
-        startEffect(CRGB::Yellow, 1);
-        effectCompleted = false;
-        effectEndTime = millis() + (LOADING_INTERVAL * TRAIL_LENGTH * 2);
-    } else if (compareUID(rfid.uid.uidByte, rfid.uid.size, trackUIDs[1], 4)) {
-        musicPlayer.stopPlaying();
-        musicPlayer.startPlayingFile("007.mp3");
-        CURRENT_LOCATION = "PURPLE";
-        Serial.println("PURPLE");
+  if (compareUID(rfid.uid.uidByte, rfid.uid.size, lastCardUID, 4)) {
+    return; // Same card detected, ignore
+  }
 
-        startEffect(CRGB::Purple, 1);
-        effectCompleted = false;
-        effectEndTime = millis() + (LOADING_INTERVAL * TRAIL_LENGTH * 2);
+  // Stop all running effects (immediately clears previous fading)
+  stopAllEffects();
 
-    } else if (compareUID(rfid.uid.uidByte, rfid.uid.size, trackUIDs[2], 4)) {
-        musicPlayer.stopPlaying();
-        musicPlayer.startPlayingFile("007.mp3");
-        CURRENT_LOCATION = "BLUE";
-        Serial.println("BLUE");
+  if (compareUID(rfid.uid.uidByte, rfid.uid.size, trackUIDs[0], 4)) {
+    musicPlayer.stopPlaying();
+    musicPlayer.startPlayingFile("007.mp3");
+    CURRENT_LOCATION = "YELLOW";
+    Serial.println("YELLOW");
 
-        startEffect(CRGB::Blue, 1);
-        effectCompleted = false;
-        effectEndTime = millis() + (LOADING_INTERVAL * TRAIL_LENGTH * 2);
-          
-      } else {
-          CURRENT_LOCATION = "NONE";
-      }
+    startEffect(CRGB::Yellow, 1);
+    effectCompleted = false;
+    effectEndTime = millis() + (LOADING_INTERVAL * TRAIL_LENGTH * 2);
+  } 
+  else if (compareUID(rfid.uid.uidByte, rfid.uid.size, trackUIDs[1], 4)) {
+    musicPlayer.stopPlaying();
+    musicPlayer.startPlayingFile("007.mp3");
+    CURRENT_LOCATION = "PURPLE";
+    Serial.println("PURPLE");
 
-    memcpy(lastCardUID, rfid.uid.uidByte, 4);
-    // attachInterrupt(digitalPinToInterrupt(MPR121_INT), handleTouchSensor, FALLING);
+    startEffect(CRGB::Purple, 1);
+    effectCompleted = false;
+    effectEndTime = millis() + (LOADING_INTERVAL * TRAIL_LENGTH * 2);
+  } 
+  else if (compareUID(rfid.uid.uidByte, rfid.uid.size, trackUIDs[2], 4)) {
+    musicPlayer.stopPlaying();
+    musicPlayer.startPlayingFile("007.mp3");
+    CURRENT_LOCATION = "BLUE";
+    Serial.println("BLUE");
+
+    startEffect(CRGB::Blue, 1);
+    effectCompleted = false;
+    effectEndTime = millis() + (LOADING_INTERVAL * TRAIL_LENGTH * 2);      
+  } 
+  else {
+    CURRENT_LOCATION = "NONE";
+  }
+
+  memcpy(lastCardUID, rfid.uid.uidByte, 4);
+  // attachInterrupt(digitalPinToInterrupt(MPR121_INT), handleTouchSensor, FALLING); // Moved to setup
 }
+
 // Compare two UIDs
 bool compareUID(byte* uid, byte size, const byte* compareUID, byte compareSize) {
-    if (size != compareSize) return false;
-    for (byte i = 0; i < size; i++) {
-        if (uid[i] != compareUID[i]) return false;
-    }
-    return true;
+  if (size != compareSize) return false;
+  for (byte i = 0; i < size; i++) {
+      if (uid[i] != compareUID[i]) return false;
+  }
+  return true;
 }
 
 // Print UID in HEX format
 void printHex(byte *buffer, byte bufferSize) {
-    for (byte i = 0; i < bufferSize; i++) {
-        //Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-        //Serial.print(buffer[i], HEX);
-    }
+  for (byte i = 0; i < bufferSize; i++) {
+      //Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+      //Serial.print(buffer[i], HEX);
+  }
 }
 
 //////////////////////////////////////////////////////////
@@ -444,73 +481,74 @@ void printHex(byte *buffer, byte bufferSize) {
 //////////////////////////////////////////////////////////
 
 void startFadeSlow(CRGB color) {
-    fadeColor = color;
-    fadeInterval = SLOW_BLINK_INTERVAL / 50; // Adjust for slower fade
-    isFading = true;
-    fadeBrightness = 0;
-    fadeDirection = 1;
-    fadeRunning = true;
+  fadeColor = color;
+  fadeInterval = SLOW_BLINK_INTERVAL / 50; // Adjust for slower fade
+  isFading = true;
+  fadeBrightness = 0;
+  fadeDirection = 1;
+  fadeRunning = true;
 }
 
 void stopFading() {
-    isFading = false;
-    turnOffAllLEDs();
-    FastLED.show();
+  isFading = false;
+  turnOffAllLEDs();
+  FastLED.show();
 }
 
 // **Call this in loop() to update fade animation**
 void updateFadeEffect() {
-    if (!fadeRunning) return;
+  if (!fadeRunning) return;
 
-    unsigned long currentMillis = millis();
-    if (currentMillis - fadeMillis >= fadeInterval) {  // Adjust fading speed here
-        fadeMillis = currentMillis;
+  unsigned long currentMillis = millis();
+  if (currentMillis - fadeMillis >= fadeInterval) {  // Adjust fading speed here
+    fadeMillis = currentMillis;
 
-        // Adjust brightness based on direction
-        fadeBrightness += fadeDirection * 5; // Adjust step size for smooth fading
-        if (fadeBrightness >= 255) {
-            fadeBrightness = 255;
-            fadeDirection = -1; // Start fading out
-        } else if (fadeBrightness <= 0) {
-            fadeBrightness = 0;
-            fadeDirection = 1; // Start fading in
-        }
-
-        FastLED.clear();
-        fill_solid(leds, NUM_LEDS, fadeColor);
-        FastLED.setBrightness(fadeBrightness);
-        FastLED.show();
+    // Adjust brightness based on direction
+    fadeBrightness += fadeDirection * 5; // Adjust step size for smooth fading
+    if (fadeBrightness >= 255) {
+        fadeBrightness = 255;
+        fadeDirection = -1; // Start fading out
+    } 
+    else if (fadeBrightness <= 0) {
+        fadeBrightness = 0;
+        fadeDirection = 1; // Start fading in
     }
+
+    FastLED.clear();
+    fill_solid(leds, NUM_LEDS, fadeColor);
+    FastLED.setBrightness(fadeBrightness);
+    FastLED.show();
+  }
 }
 
 // Start the loading effect
 void startEffect(CRGB color, int times) {
-    currentColor = color;
-    effectCycles = times * NUM_LEDS;
-    currentLED = 0;
-    effectRunning = true;
+  currentColor = color;
+  effectCycles = times * NUM_LEDS;
+  currentLED = 0;
+  effectRunning = true;
 }
 
 // Function to stop all effects (loading and fading)
 void stopAllEffects() {
-    effectRunning = false;
-    fadeRunning = false;  
-    effectCompleted = true; 
-    turnOffAllLEDs();
-    FastLED.show();
+  effectRunning = false;
+  fadeRunning = false;  
+  effectCompleted = true; 
+  turnOffAllLEDs();
+  FastLED.show();
 }
 
 // Start fast blinking
 void startBlinkFast(CRGB color) {
-    // turnOffAllLEDs();
-    stopAllEffects();
-    blinkColor = color;
-    blinkInterval = FAST_BLINK_INTERVAL;
-    isBlinking = true;
-    ledsOn = false;
-    previousMillis = millis();
-    // fadeRunning = false;
-    // isFading = false;
+  // turnOffAllLEDs();
+  stopAllEffects();
+  blinkColor = color;
+  blinkInterval = FAST_BLINK_INTERVAL;
+  isBlinking = true;
+  ledsOn = false;
+  previousMillis = millis();
+  // fadeRunning = false;
+  // isFading = false;
 }
 
 // Stop blinking and turn LEDs off
@@ -522,182 +560,161 @@ void stopBlinking() {
 
 // Keep blinking running
 void updateBlinking() {
-    if (!isBlinking) return;
+  if (!isBlinking) return;
 
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= blinkInterval) {
-        previousMillis = currentMillis;
-        ledsOn = !ledsOn;
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= blinkInterval) {
+    previousMillis = currentMillis;
+    ledsOn = !ledsOn;
 
-        if (ledsOn) {
-            for (int i = 0; i < NUM_LEDS; i++) {
-                leds[i] = blinkColor;
-            }
-        } else {
-            FastLED.clear();
+    if (ledsOn) {
+        for (int i = 0; i < NUM_LEDS; i++) {
+            leds[i] = blinkColor;
         }
-        FastLED.setBrightness(155);
-        FastLED.show();
+    } else {
+        FastLED.clear();
     }
+    FastLED.setBrightness(155);
+    FastLED.show();
+  }
 }
 
 void updateLEDs() {
-    if (!effectRunning) {
-        if (!effectCompleted && millis() >= effectEndTime) {
-            effectCompleted = true;  
+  if (!effectRunning) {
+    if (!effectCompleted && millis() >= effectEndTime) {
+        effectCompleted = true;  
 
-            // Start fade effect after the loading completes
-            if(!STUDY_MODE){
-                startFadeSlow(
-                  CURRENT_LOCATION == "YELLOW" ? CRGB::Yellow : 
-                  CURRENT_LOCATION == "PURPLE" ? CRGB::Purple : 
-                  CURRENT_LOCATION == "BLUE" ? CRGB::Blue :
-                  CRGB::White // Default case
-              );
-              return;
-            } 
-            else if(CURRENT_LOCATION == "YELLOW"){
-              if (EXTEND_BREAK) {
-                  // startBlinkFast(CRGB::Blue); 
-                    if (BREAK_LOCATION == "YELLOW") {
-                    turnOnAllLEDs(CRGB::Yellow);
-                  } else if (BREAK_LOCATION == "PURPLE") {
-                    turnOnAllLEDs(CRGB::Purple);
-                  }
-                } else if (BACK_TO_STUDY) {
-                  startBlinkFast(CRGB::Blue);    
-                } else if (BREAK_LOCATION == "YELLOW") {
-                  turnOnAllLEDs(CRGB::Yellow);
-                } else if (BREAK_LOCATION == "PURPLE") {
-                  startBlinkFast(CRGB::Purple); 
-                } else if (BREAK_LOCATION == ""){
-                  startBlinkFast(CRGB::Blue); 
-                }
-                return;
-            }
-            
-            else if (CURRENT_LOCATION == "PURPLE"){
-                if (EXTEND_BREAK) {
-                  // startBlinkFast(CRGB::Blue); 
-                    if (BREAK_LOCATION == "YELLOW") {
-                    turnOnAllLEDs(CRGB::Yellow);
-                  } else if (BREAK_LOCATION == "PURPLE") {
-                    turnOnAllLEDs(CRGB::Purple);
-                  }
-                } else if (BACK_TO_STUDY) {
-                  startBlinkFast(CRGB::Blue);    
-                } else if (BREAK_LOCATION == "YELLOW") {
-                  startBlinkFast(CRGB::Yellow);
-                } else if (BREAK_LOCATION == "PURPLE") {
-                  turnOnAllLEDs(CRGB::Purple);
-                } else if (BREAK_LOCATION == ""){
-                  startBlinkFast(CRGB::Blue); 
-                }
-                return;
-            }
+        // Start fade effect after the loading completes
+        if(!STUDY_MODE){
+            startFadeSlow(
+              CURRENT_LOCATION == "YELLOW" ? CRGB::Yellow : 
+              CURRENT_LOCATION == "PURPLE" ? CRGB::Purple : 
+              CURRENT_LOCATION == "BLUE" ? CRGB::Blue :
+              CRGB::White // Default case
+          );
+          return;
+        } 
 
-            else if (CURRENT_LOCATION == "BLUE"){
-              if ((BREAK_LOCATION == "PURPLE") && !BACK_TO_STUDY) {
-                  startBlinkFast(CRGB::Purple);
-              } else if ((BREAK_LOCATION == "YELLOW") && !BACK_TO_STUDY) {
-                  startBlinkFast(CRGB::Yellow);
-              } else {
-                turnOnAllLEDs(CRGB::Blue);
+        else if(CURRENT_LOCATION == "YELLOW"){
+          if (EXTEND_BREAK) { 
+                if (BREAK_LOCATION == "YELLOW") {
+                turnOnAllLEDs(CRGB::Yellow);
+              } else if (BREAK_LOCATION == "PURPLE") {
+                turnOnAllLEDs(CRGB::Purple);
               }
-              // else if (BREAK_LOCATION == "") {
-              //   turnOnAllLEDs(CRGB::Blue);
-              //   }
-              return;
-            }   
+            } else if (BACK_TO_STUDY) {
+              startBlinkFast(CRGB::Blue);    
+            } else if (BREAK_LOCATION == "YELLOW") {
+              turnOnAllLEDs(CRGB::Yellow);
+            } else if (BREAK_LOCATION == "PURPLE") {
+              startBlinkFast(CRGB::Purple); 
+            } else if (BREAK_LOCATION == ""){
+              startBlinkFast(CRGB::Blue); 
+            }
+            return;
         }
-        return;
+        
+        else if (CURRENT_LOCATION == "PURPLE"){
+            if (EXTEND_BREAK) {
+                if (BREAK_LOCATION == "YELLOW") {
+                turnOnAllLEDs(CRGB::Yellow);
+              } else if (BREAK_LOCATION == "PURPLE") {
+                turnOnAllLEDs(CRGB::Purple);
+              }
+            } else if (BACK_TO_STUDY) {
+              startBlinkFast(CRGB::Blue);    
+            } else if (BREAK_LOCATION == "YELLOW") {
+              startBlinkFast(CRGB::Yellow);
+            } else if (BREAK_LOCATION == "PURPLE") {
+              turnOnAllLEDs(CRGB::Purple);
+            } else if (BREAK_LOCATION == ""){
+              startBlinkFast(CRGB::Blue); 
+            }
+            return;
+        }
+
+        else if (CURRENT_LOCATION == "BLUE"){
+          if ((BREAK_LOCATION == "PURPLE") && !BACK_TO_STUDY) {
+              startBlinkFast(CRGB::Purple);
+          } else if ((BREAK_LOCATION == "YELLOW") && !BACK_TO_STUDY) {
+              startBlinkFast(CRGB::Yellow);
+          } else {
+            turnOnAllLEDs(CRGB::Blue);
+          }
+          return;
+        }   
     }
+    return;
+  }
 
 
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= LOADING_INTERVAL) {
-        previousMillis = currentMillis;
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= LOADING_INTERVAL) {
+    previousMillis = currentMillis;
 
-        FastLED.clear();
-        for (int i = 0; i < TRAIL_LENGTH; i++) {
-            int ledIndex = (currentLED - i + NUM_LEDS) % NUM_LEDS;
-            leds[ledIndex] = currentColor;
-        }
-        FastLED.setBrightness(155);
-        FastLED.show();
-
-        currentLED = (currentLED + 1) % NUM_LEDS;
-        effectCycles--;
-
-        if (effectCycles <= 0) {
-            effectRunning = false;
-            turnOffAllLEDs();
-        }
+    FastLED.clear();
+    for (int i = 0; i < TRAIL_LENGTH; i++) {
+        int ledIndex = (currentLED - i + NUM_LEDS) % NUM_LEDS;
+        leds[ledIndex] = currentColor;
     }
+    FastLED.setBrightness(155);
+    FastLED.show();
+
+    currentLED = (currentLED + 1) % NUM_LEDS;
+    effectCycles--;
+
+    if (effectCycles <= 0) {
+        effectRunning = false;
+        turnOffAllLEDs();
+    }
+  }
 }
 
 
 // Turn on all LEDs with a specific color
 void turnOnAllLEDs(CRGB color) {
-    isBlinking = false;
-    effectRunning = false;
-    fadeRunning = false;
-    isFading = false;
-    for (int i = 0; i < NUM_LEDS; i++) {
-        leds[i] = color;
-    }
-    FastLED.setBrightness(30);
-    FastLED.show();
+  isBlinking = false;
+  effectRunning = false;
+  fadeRunning = false;
+  isFading = false;
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = color;
+  }
+  FastLED.setBrightness(30);
+  FastLED.show();
 }
 
 // Turn off all LEDs
 void turnOffAllLEDs() {
-    isBlinking = false;
-    effectRunning = false;
-    fadeRunning = false;
-    isFading = false;
-    FastLED.clear();
-    FastLED.show();
+  isBlinking = false;
+  effectRunning = false;
+  fadeRunning = false;
+  isFading = false;
+  FastLED.clear();
+  FastLED.show();
 }
 
 // Turn on half of the LEDs to create a smile effect, then turn off after 3 seconds
 void showSmile(CRGB color) {
-    isBlinking = false;
-    effectRunning = false;
-    FastLED.clear();
+  isBlinking = false;
+  effectRunning = false;
+  FastLED.clear();
 
-    int halfLEDs = NUM_LEDS / 2;
-    int startLED = (NUM_LEDS - halfLEDs) / 2; // Center the smile
+  int halfLEDs = NUM_LEDS / 2;
+  int startLED = (NUM_LEDS - halfLEDs) / 2; // Center the smile
 
-    for (int i = 0; i < halfLEDs; i++) {
-        leds[(startLED + i) % NUM_LEDS] = color;
-    }
+  for (int i = 0; i < halfLEDs; i++) {
+      leds[(startLED + i) % NUM_LEDS] = color;
+  }
 
-    FastLED.setBrightness(30);
-    FastLED.show();
+  FastLED.setBrightness(30);
+  FastLED.show();
 
-    // Start the timer for 3 seconds
-    smileStartMillis = millis();
-    smileActive = true;
+  // Start the timer for 3 seconds
+  smileStartMillis = millis();
+  smileActive = true;
 }
 
-// Update function to handle the timing for turning off the smile
-// void updateSmile() {
-//     if (smileActive) {
-//         // Check if 3 seconds have passed
-//         if (millis() - smileStartMillis >= 3000) {
-//             turnOffAllLEDs(); // Turn off the LEDs after 3 seconds
-//             smileActive = false; // Reset the smile state
-//             
-//             startFadeSlow(
-//                   CURRENT_LOCATION == "YELLOW" ? CRGB::Yellow : 
-//                   CURRENT_LOCATION == "PURPLE" ? CRGB::Purple : 
-//                   CURRENT_LOCATION == "BLUE" ? CRGB::Blue :
-//                   CRGB::White // Default case
-//               );
-//         }
-//     }
-// }
 void updateSmile() {
   if (smileActive) {
     // Check if 3 seconds have passed
@@ -731,132 +748,42 @@ void updateSmile() {
   }
 }
 
-
-
 //////////////////////////////////////////////////////////
 // CODE FOR SERVOS
 //////////////////////////////////////////////////////////
-void servoResting() {
-    static int step = 0;
-    static unsigned long lastMoveTime = 0;  // Tracks time for each step
-    static int currentBottomAngle = -1;
-    static int currentUpAngle = -1;
+void servoResting() { // NOT USING FOR NOW
+  static int step = 0;
+  static unsigned long lastMoveTime = 0;  // Tracks time for each step
+  static int currentBottomAngle = -1;
+  static int currentUpAngle = -1;
 
-    // If less than 300ms has passed since last step, do nothing
-    if (millis() - lastMoveTime < 400) return;
+  // If less than 300ms has passed since last step, do nothing
+  if (millis() - lastMoveTime < 400) return;
 
-    // Update the timer
-    lastMoveTime = millis();
+  // Update the timer
+  lastMoveTime = millis();
 
-    // Advance one step
-    switch (step) {
-        case 0:
-            if (currentBottomAngle != 70) {
-                // bottomServo.write(70); // Move bottom servo to position 50
-                moveBottomServo(70);
-                currentBottomAngle = 70;
-            }
-            break;
-        case 1:
-            if (currentUpAngle != 90) {
-                // upServo.write(90);     // Move top servo to position 5
-                moveUpServo(90);
-                currentUpAngle = 90;
-            }
-            break;
-    }
+  // Advance one step
+  switch (step) {
+      case 0:
+        if (currentBottomAngle != 70) {
+            // bottomServo.write(70); // Move bottom servo to position 50
+            moveBottomServo(70);
+            currentBottomAngle = 70;
+        }
+        break;
+      case 1:
+        if (currentUpAngle != 90) {
+            // upServo.write(90);     // Move top servo to position 5
+            moveUpServo(90);
+            currentUpAngle = 90;
+        }
+        break;
+  }
 
-    step++;
-    if (step >= 2) step = 0; // Reset step when sequence completes
+  step++;
+  if (step >= 2) step = 0; // Reset step when sequence completes
 }
-
-// void lookUp() {
-//     static int step = 0;
-//     static unsigned long lastMoveTime = 0;
-//     static int currentBottomAngle = -1;
-//     static int currentUpAngle = -1;
-
-//     if (millis() - lastMoveTime < 400) return; // Non-blocking check
-//     lastMoveTime = millis(); // Update time
-
-//     switch (step) {
-//         case 0:
-//             if (currentBottomAngle != 70) {
-//                 // bottomServo.write(70); // Move bottom servo to position 50
-//                 moveBottomServo(70);
-//                 currentBottomAngle = 70;
-//             }
-//             break;
-//         case 1:
-//             if (currentUpAngle != 90) {
-//                 // upServo.write(90); // Move upper servo to position 100
-//                 moveUpServo(90);
-//                 currentUpAngle = 90;
-//             }
-//             break;
-//     }
-
-//     step++;
-//     if (step >= 2) {
-//       step = 0; // Reset step when sequence completes
-//       detachAllServos();
-//     }
-// }
-
-// void lookUp() {
-//   unsigned long currentMillis = millis();
-//   static unsigned long lastMoveTime = millis(); // Start timer
-//   static int step = 0;
-//   static int currentBottomAngle = -1;
-//   static int currentUpAngle = -1;
-
-//   while (step < 2) { // Loop through all steps of the sequence
-//     currentMillis = millis();
-//     // Wait until 400ms has passed for each step
-//     if (currentMillis - lastMoveTime >= 400) {
-//       lastMoveTime = currentMillis; // Update the timer
-
-//       switch (step) {
-//         case 0:
-//           if (currentBottomAngle != 70) {
-//             moveBottomServo(70);
-//             currentBottomAngle = 70;
-//           }
-//           break;
-//         case 1:
-//           if (currentUpAngle != 90) {
-//             moveUpServo(90);
-//             currentUpAngle = 90;
-//           }
-//           break;
-//         case 2:
-//           detachAllServos();
-//           break;
-//       }
-//       step++;
-//     }
-//   }
-// }
-
-// void lookDown() {
-//     static int step = 0;
-//     static unsigned long lastMoveTime = 0;
-//     if (millis() - lastMoveTime < 400) return; // Non-blocking check
-
-//     lastMoveTime = millis(); // Update time
-//     switch (step) {
-//         // case 0: bottomServo.write(70); break;
-//         // case 1: upServo.write(80); break;
-//         case 0: moveBottomServo(70); break;
-//         case 1: moveUpServo(80); break;
-//     }
-//     step++;
-//     if (step >= 2) {
-//       step = 0; // Reset step
-//       detachAllServos();
-//     }
-
-// }
 
 void lookUp() {
   unsigned long currentMillis = millis();
@@ -994,71 +921,74 @@ void lookRight() {
 }
 
 void faceWave() {
-unsigned long currentMillis = millis();
-static unsigned long lastMoveTime = millis(); // Start timer
-int step = 0; // Initialize the step counter
+  unsigned long currentMillis = millis();
+  static unsigned long lastMoveTime = millis(); // Start timer
+  int step = 0; // Initialize the step counter
 
-while (step < 5) { // Loop through all steps of the sequence
-  currentMillis = millis();
-  // Wait until 300ms has passed for each step
-  if (currentMillis - lastMoveTime >= 300) {
-    lastMoveTime = currentMillis; // Update the timer
+  while (step < 5) { // Loop through all steps of the sequence
+    currentMillis = millis();
+    // Wait until 300ms has passed for each step
+    if (currentMillis - lastMoveTime >= 300) {
+      lastMoveTime = currentMillis; // Update the timer
 
-    switch (step) {
-      case 0:
-        moveUpServo(90); //Default Look Up
-        break;
+      switch (step) {
+        case 0:
+          moveUpServo(90); //Default Look Up
+          break;
 
-      case 1:
-        // bottomServo.write(55);      // Move servo to position 35
-        moveBottomServo(55);
-        break;
+        case 1:
+          // bottomServo.write(55);      // Move servo to position 35
+          moveBottomServo(55);
+          break;
 
-      case 2:
-        // bottomServo.write(85);      // Move servo to position 65
-        moveBottomServo(85);
-        break;
+        case 2:
+          // bottomServo.write(85);      // Move servo to position 65
+          moveBottomServo(85);
+          break;
 
-      case 3:
-        // bottomServo.write(70);      // Move servo back to neutral
-        moveBottomServo(70);
-        break;
-      
-      case 4:
-        detachAllServos();
-        break;
+        case 3:
+          // bottomServo.write(70);      // Move servo back to neutral
+          moveBottomServo(70);
+          break;
+        
+        case 4:
+          detachAllServos();
+          break;
+      }
+      step++; // Move to the next step
     }
-    step++; // Move to the next step
   }
 }
-}
+
 void knod() {
   unsigned long currentMillis = millis();
   static unsigned long lastMoveTime = millis(); // Start timer
   int step = 0; // Initialize the step counter
 
   while (step < 3) { // Loop through all steps of the sequence
-  currentMillis = millis();
-  // Wait until 300ms has passed for each step
-  if (currentMillis - lastMoveTime >= 400) {
-    lastMoveTime = currentMillis; // Update the timer
+    currentMillis = millis();
+    // Wait until 300ms has passed for each step
+    if (currentMillis - lastMoveTime >= 400) {
+      lastMoveTime = currentMillis; // Update the timer
 
-    switch (step) {
-    // case 0: upServo.write(80); break;
-    // case 1: upServo.write(90); break;
-    case 0: moveUpServo(80); break;
-    case 1: moveUpServo(90); break;
-    case 2:
-      detachAllServos();
-      break;
-  }
-  step++;
-  }
+      switch (step) {
+      // case 0: upServo.write(80); break;
+      // case 1: upServo.write(90); break;
+      case 0: moveUpServo(80); break;
+      case 1: moveUpServo(90); break;
+      case 2:
+        detachAllServos();
+        break;
+    }
+    step++;
+    }
   }
 }
 
 // Helpers for the attach - detach logic 
-// This is a step to prevent the constant twitching of the servo motor
+/* This is a step to prevent the constant twitching of the servo motor - which happens 
+due to the NeoPixel LED often disabling the interrupt. Servo needs the interrupt enabled
+to maintain the angle and prevent twitching */
 void moveBottomServo(int angle) {
   if (!bottomServo.attached()) {
     bottomServo.attach(BOTTOM_SERVO_PIN);  // Replace with your actual pin
