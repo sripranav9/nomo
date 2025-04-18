@@ -8,7 +8,7 @@
 Nomo is an interactive desk companion robot built to encourage healthier work habits through computer vision, gesture recognition, and playful nudges. Designed as a capstone project at NYU Abu Dhabi, Nomo blends real-time software with expressive hardware to promote mindful breaks and deep focus—making your workflow a little more human.
 
 ## 🏷️ Tags
-`robotics` `interactive-media` `raspberry-pi` `arduino` `computer-vision` `wellbeing` `habit-formation` `capstone-project` `pomodoro`
+`interactive-media` `robotics` `robot-companion` `machine-learning` `google-mediapipe` `raspberry-pi-5` `arduino` `wellbeing` `capstone-project` `pomodoro`
 
 
 ## 🔧 Features
