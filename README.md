@@ -7,11 +7,11 @@
 
 Nomo is an interactive desk companion robot built to encourage healthier work habits through computer vision, gesture recognition, and playful nudges. Designed as a capstone project at NYU Abu Dhabi, Nomo blends real-time software with expressive hardware to promote mindful breaks and deep focus—making your workflow a little more human.
 
-## 🏷️ Topics
+## 🏷 Topics
 `interactive-media` `robotics` `robot-companion` `machine-learning` `google-mediapipe` `raspberry-pi-5` `arduino` `wellbeing` `capstone-project` `pomodoro`
 
 
-## 🔧 Features
+## Features
 
 - Real-time gesture recognition (wave, closed fist, thumbs-up)
 - LED feedback to guide breaks and focus sessions
@@ -20,7 +20,7 @@ Nomo is an interactive desk companion robot built to encourage healthier work ha
 - Location-based behavior (work and break zones)
 - Designed with routines, attention, and well-being in mind
 
-## 🧠 Built With
+## Built With
 
 - [MediaPipe](https://github.com/google/mediapipe) – real-time hand tracking and gesture recognition
 - [OpenCV](https://opencv.org/) – image capture, annotation, and video streaming
@@ -32,14 +32,14 @@ Nomo is an interactive desk companion robot built to encourage healthier work ha
 - [Raspberry Pi 5](https://www.raspberrypi.com/products/raspberry-pi-5/) – main compute unit for processing gestures, state transitions, and control logic
 
 
-## 🚀 How It Works
+## How It Works
 
 Nomo runs on a Raspberry Pi using Python for vision and logic, paired with an Arduino for motor and sensor control. When placed in a predefined location, it can detect gestures and trigger break/focus states accordingly. Each mode is designed to reflect a balance between productivity and self-care.
 
 > For a full overview of modes, gestures, and setup, see the [Product Manual](/docs/nomo-product-manual.pdf).
 
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```bash
 nomo/
