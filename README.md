@@ -22,17 +22,16 @@ Nomo is an interactive desk companion robot built to encourage healthier work ha
 
 Nomo runs on a Raspberry Pi using Python for vision and logic, paired with an Arduino for motor and sensor control. When placed in a predefined location, it can detect gestures and trigger break/focus states accordingly. Each mode is designed to reflect a balance between productivity and self-care.
 
-> For a full overview of modes, gestures, and setup, see the [Product Manual](link).
+> For a full overview of modes, gestures, and setup, see the [Product Manual](/docs/nomo-product-manual.pdf).
 
 
 ## 📁 Repository Structure
 
 ```bash
 nomo/
-├── pi/                 # Raspberry Pi scripts (Python - gesture, logic)
-├── arduino/            # Arduino sketches (servo, vibration, LEDs)
-├── assets/             # Media, logos, mockups
-├── docs/               # Product manual, slides, website content
-├── web/                # Framer site export or related media
+├── pi/                 # Raspberry Pi scripts (python - gesture, logic)
+├── arduino/            # Arduino sketches (servo, vibration, LEDs, sounds)
+├── assets/             # Gesture samples, hero images, mockups
+├── docs/               # Product manual
 └── README.md
 
