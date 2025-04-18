@@ -144,7 +144,7 @@ void setup() {
         while (1);
     }
     pinMode(MPR121_INT, INPUT_PULLUP);
-    capTouch.setThresholds(4,2);
+    capTouch.setThresholds(10,6);
 
     SPI.begin();
     rfid.PCD_Init();
@@ -222,7 +222,7 @@ void loop() {
     lookDown();
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("005.mp3");
-  
+
   } 
   else if (command == "NEUTRAL"){
     // Neutral position of servos
@@ -234,6 +234,7 @@ void loop() {
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("009.mp3");
     turnOnAllLEDs(CRGB::Blue);
+    lookDown();
   } 
   else if (command == "EXTEND_BREAK"){
     // Turn solid whatever break colour, servo knod
@@ -263,6 +264,7 @@ void loop() {
     musicPlayer.startPlayingFile("011.mp3");
     startBlinkFast(CRGB::Yellow);
     BREAK_LOCATION = "YELLOW";
+    lookNeutral();
   } 
   else if (command == "BREAK_PURPLE"){
     // LED fast blinking purple
@@ -270,6 +272,7 @@ void loop() {
     musicPlayer.startPlayingFile("011.mp3");
     startBlinkFast(CRGB::Purple);
     BREAK_LOCATION = "PURPLE";
+    lookNeutral();
   } 
   else if (command == "CHECK_LOCATION"){
     Serial.println(CURRENT_LOCATION);
@@ -295,6 +298,7 @@ void loop() {
     turnOnAllLEDs(CRGB::Blue);
     BACK_TO_STUDY = false;
     BREAK_LOCATION = "";
+    lookDown();
   }
   else if (command == "SECOND_STUDY_NUDGE"){
     // Play a sound
@@ -312,6 +316,7 @@ void loop() {
     BREAK_LOCATION = "";
     BACK_TO_STUDY = false;
     startFadeSlow(CRGB::White);
+    lookNeutral();
   } 
   else if (command == "LOOK_LEFT"){
     lookLeft();
@@ -339,9 +344,10 @@ void loop() {
     // Solid blue, Servo knod, STUDY MODE ON
     musicPlayer.stopPlaying();
     musicPlayer.startPlayingFile("013.mp3");
-    turnOnAllLEDs(CRGB::Blue);
     knod();
+    turnOnAllLEDs(CRGB::Blue);
     STUDY_MODE = true;
+    lookDown();
   }
 }
 
@@ -925,7 +931,7 @@ void faceWave() {
   static unsigned long lastMoveTime = millis(); // Start timer
   int step = 0; // Initialize the step counter
 
-  while (step < 5) { // Loop through all steps of the sequence
+  while (step < 6) { // Loop through all steps of the sequence
     currentMillis = millis();
     // Wait until 300ms has passed for each step
     if (currentMillis - lastMoveTime >= 300) {
@@ -952,6 +958,10 @@ void faceWave() {
           break;
         
         case 4:
+          moveUpServo(80); //Make Nomo look down again
+          break;
+        
+        case 5:
           detachAllServos();
           break;
       }
@@ -974,8 +984,8 @@ void knod() {
       switch (step) {
       // case 0: upServo.write(80); break;
       // case 1: upServo.write(90); break;
-      case 0: moveUpServo(80); break;
-      case 1: moveUpServo(90); break;
+      case 0: moveUpServo(70); break;
+      case 1: moveUpServo(80); break;
       case 2:
         detachAllServos();
         break;
