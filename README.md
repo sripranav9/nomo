@@ -2,6 +2,8 @@
 
 [![Website](https://img.shields.io/badge/Website-nomo--capstone.framer.website-blue)](https://nomo-capstone.framer.website/)
 ![Last Commit](https://img.shields.io/github/last-commit/sripranav9/nomo)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 
 **A Little Friend for a Big Focus**
 
