@@ -1,5 +1,8 @@
 # Nomo
 
+[![Website](https://img.shields.io/badge/Website-nomo--capstone.framer.website-blue)](https://nomo-capstone.framer.website/)
+![Last Commit](https://img.shields.io/github/last-commit/sripranav9/nomo)
+
 **A Little Friend for a Big Focus**
 
 Nomo is an interactive desk companion robot built to encourage healthier work habits through computer vision, gesture recognition, and playful nudges. Designed as a capstone project at NYU Abu Dhabi, Nomo blends real-time software with expressive hardware to promote mindful breaks and deep focus—making your workflow a little more human.
