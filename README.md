@@ -53,6 +53,24 @@ nomo/
 
 ```
 
+## Credits
+
+This project was made possible with the support and guidance of:
+
+- **Professor Nimrah Syed** – *Capstone Advisor*  
+  Provided continuous mentorship and feedback from the ideation stage through final execution.
+
+- **Professor Michael Shiloh** – *Technical Mentor*  
+  Offered invaluable assistance in hardware design, debugging, and user testing throughout development.
+
+- **Daniel Nivia** – *NYU Abu Dhabi Alumnus*  
+  Contributed custom audio cues, lending Nomo its personality and expressive audio interactions.
+
+We deeply appreciate their time, expertise, and encouragement in bringing Nomo to life.
+
+We also extend our heartfelt thanks to the **Interactive Media faculty, instructors, lab staff, and the NYUAD Art Gallery** for their continuous support, resources, and encouragement throughout the capstone journey.
+
+
 ## 🔒 Project Use Notice
 
 This was developed as part of a Capstone Project at **NYU Abu Dhabi** (2025).
